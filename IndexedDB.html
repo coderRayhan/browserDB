@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+
+        #preLoader{
+            background: #000 url(preloader.gif) no-repeat center;
+            background-size: 20%;
+            height: 100vh;
+            width: 100%;
+            position: fixed;
+            z-index: 100;
+        }
+
+        /* .container{
+            background-image: url('image.jpeg');
+        } */
+
+        header, footer{
+            width: 100%;
+            height: 100px;
+            background-color: rgb(43, 21, 21);
+            font-family: verdana; 
+            position: fixed; 
+        }
+
+        footer{
+            bottom: 0;
+        }
+
+        header h1{
+            color: white;
+            position: absolute;
+            margin-top: 30px;
+            margin-left: 100px;
+        }
+
+        footer h2{
+            color: white;
+            position: absolute;
+            margin-top: 30px;
+            margin-left: 50px;
+        }
+
+        footer h4{
+            color: white;
+            float: right;
+            margin-right: 30px;
+            margin-top: 20px;
+        }
+
+        .nav a{
+            position: relative;
+            left: 55%;
+            top: 35px;
+            margin-right: 20px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .mainContainer{
+            overflow-y: scroll;
+            margin-bottom: 100px;
+        }
+        .formContainer{
+            width: 500px;
+            padding: 10px;
+            background-color: #5e7e80;
+            margin-top: 120px;
+            float: left;
+            margin-left: 450px;
+            font-size: 20px;
+            font-family: Arial, Helvetica, sans-serif;
+            color: white;
+            border-radius: 10px;
+        }
+
+        input{
+            box-sizing: border-box;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        input[type="radio"]{
+            width: 10%;
+        }
+
+        table, th, td{
+            border: 1px solid;
+            border-color: black;
+            border-collapse: collapse;
+            margin: 8px;
+            padding: 10px;
+        }
+
+        button{
+            padding: 10px;
+            border-radius: 10px;
+            margin-left: 20px;
+        }
+
+        .recordTable{
+            display: none;
+            margin-left: 450px;
+            margin-top: 660px;
+            background-color: #5e7e80;
+            color: white;
+            /* position: absolute; */
+        }
+
+    </style>
+</head>
+<body>
+    <div id="preLoader"></div>
+    <header>
+        <h1>Indexed DB</h1>
+        <div class="nav">
+            <a href="localStorage.html" target="_blank">LocalStorage</a>
+            <a href="sessionStorage.html" target="_blank">SessionStorage</a>
+            <a href="webSQL.html" target="_blank">WebSQL</a>
+            <a href="IndexedDB.html">IndexedDB</a>
+        </div>
+    </header>
+    <footer>
+        <h2>IndexedDB Project</h2>
+        <h4>Created By: Md. Rayhanur Rashid <br><br> ID: 1265125</h4><br>
+    </footer>
+    <div class="mainContainer">
+        <div class = "formContainer">
+            Name: <input id="name" type="text"><br><br>
+            Phone: <input id="phone" type="tel"><br><br>
+            Email: <input id="eMail" type="email"><br><br>
+            DOB: <input type="date" name="" id="dob">
+            Gender: <label for="male" style="margin-left: 80px">Male</label><input type="radio" name="gender" id="male" value="Male">
+                    <label for="female" style="margin-left: 80px">Female</label><input type="radio" name="gender" id="female" value="Female"><br><br>
+                    <input type="file" name="imageFile" id="imageFile">
+            <button style="background-color: rgb(125, 7, 204); color: white;" onclick="clickToSubmit()">Submit</button>
+            <button style="background-color: rgb(125, 7, 204); color: white;" onclick="getDataToUpdate()">Update</button>
+            <button style="background-color: rgb(125, 7, 204); color: white;" onclick="retrieveAll()">Retrieve All</button>
+            <button style="background-color: rgb(156, 1, 1); color: white;" onclick="deleteRecord()">Delete</button>
+            <button style="background-color: rgb(156, 1, 1); color: white;" onclick="deleteAll()">Delete all</button>
+    
+        </div><br>
+    
+        <table class="recordTable">
+            <thead>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>DOB</th>
+                <th>Gender</th>
+                <th>Image</th>
+            </thead>
+            <tbody id="body">
+                
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        
+        window.indexedDB = window.indexedDB || window.mozIndexedDB
+        || window.webkitIndexedDB || window.msIndexedDB;
+        window.IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction;
+        window.IDBCursor = window.IDBCursor || window.webkitIDBCursor;
+        window.IDBKeyRange = window.IDBKeyRange || window.webkitIDBKeyRange;
+
+
+var indexedDB = window.indexedDB;
+var openRequest = indexedDB.open('StudentDB', 1);
+
+var db;
+
+openRequest.onsuccess = (response) => {
+    db = openRequest.result;
+};
+
+openRequest.onerror = (response) => {
+    alert(`Error code: &nbsp ${response.target.errorCode}`);
+};
+
+openRequest.onupgradeneeded = (response) => {
+    response.currentTarget.result.createObjectStore('students', {keypath : 'ID', autoIncrement : true});
+}
+
+function studentTransaction(){
+     trans = db.transaction('students', 'readwrite');
+     students = trans.objectStore('students');
+     return trans, students;
+}
+
+clickToSubmit = () => {
+
+    var varC = confirm('Do you really want to submit?');
+    // console.log(varC);
+
+    if(varC){
+        if(upID){
+            updateRecord(upID);
+        }
+        else{
+            submitRecord();
+        }
+    }
+    else{
+        window.location.reload();
+    }
+    
+}
+
+$('#imageFile').on('change', (e) => {
+        var file = e.originalEvent.target.files[0];
+        var reader = new FileReader();
+        reader.onload = (e) => {
+            image = e.target.result;
+        }
+        reader.readAsDataURL(file);
+    });
+
+var nameV, phone,  eMail, dob, gender;
+submitRecord = () =>{
+    nameV = $('#name').val();
+    phone = $('#phone').val();
+    eMail = $('#eMail').val();
+    dob = $('#dob').val();
+    gender = $('input:radio:checked').val();
+
+    studentTransaction();
+    var request = students.add({Name : nameV, Phone : phone, Email : eMail, DOB : dob, Gender : gender, Image : image});
+
+    request.onsuccess = (response) => {
+        alert(request.result);
+        $('#name').val('');
+        $('#phone').val('');
+        $('#eMail').val('');
+        $('#dob').val('');
+        if($('#male:checked')){
+            $('#male').prop('checked', false);
+        }
+        if($('#female:checked')){
+            $('#female').prop('checked', false);
+        }
+    }
+
+    request.onerror = (response) => {
+        alert(request.errorCode);
+    }
+
+    retrieveAll();
+}
+
+
+//////getting specific id to update
+var upID;
+getDataToUpdate = () => {
+    upID = Number(prompt("Enter id to Update"));
+    studentTransaction();
+    var request = students.get(upID);
+
+    request.onsuccess = (response) => {
+        var currentStudent = response.target.result;
+        $('#name').val(currentStudent.Name);
+        $('#phone').val(currentStudent.Phone);
+        $('#eMail').val(currentStudent.Email);
+        $('#dob').val(currentStudent.DOB);
+        if(currentStudent.Gender == 'Male'){
+            $('#male').prop('checked', true);
+        }
+        if(currentStudent.Gender == 'Female'){
+            $('#female').prop('checked', true);
+        }
+        // document.querySelector('input[name = "gender"]:checked').value = currentStudent.Gender
+        
+    };
+
+    request.onerror = (response) => {
+        alert(request.errorCode);
+    };
+}
+
+
+/////////updating record
+updateRecord = (updateID) => {
+    nameV = $('#name').val();
+    phone = $('#phone').val(); 
+    eMail = $('#eMail').val();
+    dob = $('#dob').val();
+    gender = $('input:radio:checked').val();
+    image = $('#imageFile').val();
+
+    studentTransaction();
+    var request = students.put({Name : nameV, Phone : phone, Email: eMail, DOB : dob, Gender : gender, Image : image}, updateID);
+
+    request.onsuccess = (response) => {
+        alert('Record' + ' ' + request.result + ' ' + 'Updated');
+        $('#name').val('');
+        $('#phone').val('');
+        $('#eMail').val('');
+        $('#dob').val('');
+        if($('#male:checked')){
+            $('#male').prop('checked', false);
+        }
+        if($('#female:checked')){
+            $('#female').prop('checked', false);
+        }
+        /////
+        // document.querySelector('input[name = "gender"]:checked');
+    }
+    request.onerror = (response) => {
+        alert(request.errorCode);
+    }
+    retrieveAll();
+}
+
+////////deleting specific record
+deleteRecord = () => {
+    var delId = Number(prompt("Please enter id to delete"));
+    studentTransaction();
+    var request = students.delete(delId);
+    console.log(request);
+
+    request.onsuccess = (response) => {
+        alert('Record' + ' ' + delId + ' ' + 'deleted')
+    }
+    request.onerror = (response) => {
+        alert(request.errorCode);
+    }
+    retrieveAll();
+}
+
+
+////////deleting all record
+deleteAll = () => {
+    studentTransaction();
+    students.clear();
+}
+
+
+////////retrieving all record
+retrieveAll = () => {
+    $('#body').html('');
+    studentTransaction();
+    var request = students.openCursor();
+
+    request.onsuccess = (response) => {
+        var cursor = response.target.result;
+
+        if(!cursor){
+            console.log(cursor);
+            return;
+        }
+
+        markUp = `<tr>
+                    <td>${cursor.key}</td>
+                    <td>${cursor.value.Name}</td>
+                    <td>${cursor.value.Phone}</td>
+                    <td>${cursor.value.Email}</td>
+                    <td>${cursor.value.DOB}</td>
+                    <td>${cursor.value.Gender}</td>
+                    <td><img style="height: 50px; width: 50px;" src="${cursor.value.Image}" alt=""></td>
+                </tr>`;
+        
+        $('#body').append(markUp);
+        cursor.continue();
+
+        $('.recordTable').show();
+    }
+    
+}
+    </script>
+
+    <script>
+        var loader = document.getElementById('preLoader');
+        window.addEventListener('load', ()=>{
+            setTimeout(()=>{
+                loader.style.display = 'none';
+            }, 1000)
+            
+        })
+    </script>
+
+    <!-- <script src="/IndexedDB.js"></script> -->
+</body>
+</html>
